@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #060611;
+    color: #f5f7ff;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(circle at 10% 0%, rgba(139, 92, 246, 0.16), transparent 32%),
+      radial-gradient(circle at 90% 5%, rgba(6, 182, 212, 0.12), transparent 30%);
+    background-attachment: fixed;
+  }
+}

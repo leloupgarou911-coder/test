@@ -1,0 +1,8 @@
+{
+  "name": "NameForge",
+  "description": "Free name generator for fantasy, RPG, anime, gaming, dragons, kingdoms, and fictional worlds.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
