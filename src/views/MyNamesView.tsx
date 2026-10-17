@@ -247,7 +247,7 @@ export const MyNamesView: React.FC<MyNamesViewProps> = ({ onNavigate }) => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8 text-left">
+    <div className="max-w-7xl xl:max-w-[1440px] mx-auto px-4 sm:px-8 py-10 space-y-8 text-left">
       {/* Hidden file input for import */}
       <input
         type="file"

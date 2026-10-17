@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Bookmark, Menu, X, ChevronDown } from 'lucide-react';
-import { ALL_GENERATORS_LIST } from '../data/generators';
+import { Bookmark, Menu, X, ChevronDown, Settings, Search, Globe, Dices } from 'lucide-react';
+import { ALL_GENERATORS_LIST, GENERATOR_FAMILIES_CONFIG } from '../data/generators';
 import { GeneratorId } from '../types';
 import { getSavedNames, subscribeToStorage } from '../services/storage';
+import { Logo } from './Logo';
+import { SettingsModal } from './SettingsModal';
+import { LanguageSelectorModal } from './LanguageSelectorModal';
+import { getAppSettings, subscribeToSettings, SUPPORTED_LANGUAGES } from '../services/settings';
+import { getTranslations } from '../i18n';
 
 interface NavbarProps {
   currentView: string;
@@ -17,7 +22,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [generatorsDropdownOpen, setGeneratorsDropdownOpen] = useState(false);
+  const [showLangModal, setShowLangModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
+  const [settings, setSettings] = useState(getAppSettings());
+
+  const t = getTranslations(settings.language).nav;
 
   const updateCount = () => {
     const list = getSavedNames();
@@ -26,223 +36,305 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     updateCount();
-    const unsubscribe = subscribeToStorage(updateCount);
-    return () => unsubscribe();
+    const unsubStorage = subscribeToStorage(updateCount);
+    const unsubSettings = subscribeToSettings((s) => setSettings(s));
+    return () => {
+      unsubStorage();
+      unsubSettings();
+    };
   }, []);
 
+  const currentLangMeta = SUPPORTED_LANGUAGES.find((l) => l.code === settings.language) || SUPPORTED_LANGUAGES[0];
+
   return (
-    <header className="sticky top-0 z-50 bg-[#070912]/90 backdrop-blur-md border-b border-white/5 transition-all">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-17 flex items-center justify-between">
-        {/* Brand Logo */}
-        <button
-          onClick={() => {
-            onNavigate('home');
-            setMobileMenuOpen(false);
-          }}
-          className="flex items-center gap-2.5 text-white font-extrabold text-xl tracking-tight hover:opacity-90 transition cursor-pointer text-left"
-        >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-500/25">
-            <span className="text-lg">⚡</span>
-          </div>
-          <span>
-            Name<span className="text-cyan-400">Forge</span>
-          </span>
-        </button>
+    <>
+      {showSettingsModal && (
+        <SettingsModal
+          onClose={() => setShowSettingsModal(false)}
+          onSettingsChanged={(s) => setSettings(s)}
+        />
+      )}
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-7">
-          <button
-            onClick={() => onNavigate('home')}
-            className={`text-sm font-semibold transition cursor-pointer ${
-              currentView === 'home' && !currentGenerator
-                ? 'text-white border-b-2 border-purple-500 pb-1'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Home
-          </button>
+      <LanguageSelectorModal
+        isOpen={showLangModal}
+        onClose={() => setShowLangModal(false)}
+        onLanguageSelected={(code) => {
+          setSettings(getAppSettings());
+        }}
+      />
 
-          {/* Generators Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setGeneratorsDropdownOpen(!generatorsDropdownOpen)}
-              onBlur={() => setTimeout(() => setGeneratorsDropdownOpen(false), 200)}
-              className={`text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                currentView === 'generators' || currentView === 'generator-detail'
-                  ? 'text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>Generators</span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-            </button>
-
-            {generatorsDropdownOpen && (
-              <div className="absolute top-full left-0 mt-2 w-72 bg-[#0e1626] border border-slate-700/80 rounded-xl shadow-2xl p-2 z-50 grid grid-cols-1 gap-1">
-                <button
-                  onClick={() => {
-                    onNavigate('generators');
-                    setGeneratorsDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-purple-400 hover:bg-purple-950/40 transition flex items-center justify-between cursor-pointer"
-                >
-                  <span>✨ View All 11 Generators</span>
-                  <span>→</span>
-                </button>
-                <div className="h-px bg-slate-800 my-1" />
-                <div className="max-h-72 overflow-y-auto space-y-0.5 pr-1">
-                  {ALL_GENERATORS_LIST.map((gen) => (
-                    <button
-                      key={gen.id}
-                      onClick={() => {
-                        onNavigate('generator-detail', gen.id);
-                        setGeneratorsDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2.5 transition cursor-pointer ${
-                        currentGenerator === gen.id
-                          ? 'bg-purple-600/30 text-purple-300 font-bold'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-base">{gen.icon}</span>
-                      <span>{gen.title}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => onNavigate('my-names')}
-            className={`text-sm font-semibold flex items-center gap-2 transition cursor-pointer ${
-              currentView === 'my-names'
-                ? 'text-white border-b-2 border-purple-500 pb-1'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Bookmark className="w-4 h-4 text-purple-400" />
-            <span>My Names</span>
-            {savedCount > 0 && (
-              <span className="bg-purple-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-                {savedCount}
-              </span>
-            )}
-          </button>
-
-          <a
-            href="#faq"
-            onClick={(e) => {
-              if (currentView !== 'home' && currentView !== 'generator-detail') {
-                e.preventDefault();
-                onNavigate('home');
-                setTimeout(() => {
-                  const el = document.getElementById('faq');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-              }
-            }}
-            className="text-sm font-semibold text-slate-400 hover:text-white transition"
-          >
-            FAQ
-          </a>
-        </nav>
-
-        {/* Action Button */}
-        <div className="hidden md:flex items-center gap-3">
-          <button
-            onClick={() => onNavigate('generator-detail', 'fantasy')}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-md shadow-purple-600/25 transition-all transform hover:-translate-y-0.5 cursor-pointer flex items-center gap-1.5"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Forge Names</span>
-          </button>
-        </div>
-
-        {/* Mobile menu toggle */}
-        <div className="flex md:hidden items-center gap-2">
-          <button
-            onClick={() => onNavigate('my-names')}
-            className="p-2 text-purple-400 relative"
-            title="My Saved Names"
-          >
-            <Bookmark className="w-5 h-5" />
-            {savedCount > 0 && (
-              <span className="absolute top-1 right-1 bg-purple-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                {savedCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-300 hover:text-white"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0a0e1a] border-b border-slate-800 px-4 py-4 space-y-3">
+      <header className="sticky top-0 z-40 bg-[#070912]/95 backdrop-blur-md border-b border-white/10 transition-all">
+        <div className="max-w-7xl xl:max-w-[1440px] mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+          {/* Brand Logo */}
           <button
             onClick={() => {
               onNavigate('home');
               setMobileMenuOpen(false);
             }}
-            className="block w-full text-left py-2 text-sm font-semibold text-slate-300 hover:text-white cursor-pointer"
+            className="cursor-pointer text-left focus:outline-none py-1"
+            aria-label="NameForge Accueil"
           >
-            Home
-          </button>
-          <button
-            onClick={() => {
-              onNavigate('generators');
-              setMobileMenuOpen(false);
-            }}
-            className="block w-full text-left py-2 text-sm font-semibold text-slate-300 hover:text-white cursor-pointer"
-          >
-            All Name Generators (11)
-          </button>
-          <button
-            onClick={() => {
-              onNavigate('my-names');
-              setMobileMenuOpen(false);
-            }}
-            className="flex items-center justify-between w-full text-left py-2 text-sm font-semibold text-slate-300 hover:text-white cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <Bookmark className="w-4 h-4 text-purple-400" />
-              <span>My Saved Names</span>
-            </span>
-            {savedCount > 0 && (
-              <span className="bg-purple-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                {savedCount}
-              </span>
-            )}
+            <Logo size="lg" />
           </button>
 
-          <div className="pt-2 border-t border-slate-800">
-            <span className="text-xs uppercase font-bold text-slate-500 tracking-wider block mb-2">
-              Popular Generators
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              {ALL_GENERATORS_LIST.slice(0, 6).map((gen) => (
-                <button
-                  key={gen.id}
-                  onClick={() => {
-                    onNavigate('generator-detail', gen.id);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="text-left text-xs text-slate-300 hover:text-purple-300 py-1.5 flex items-center gap-1.5 truncate cursor-pointer"
-                >
-                  <span>{gen.icon}</span>
-                  <span className="truncate">{gen.shortTitle}</span>
-                </button>
-              ))}
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            <button
+              onClick={() => onNavigate('home')}
+              className={`text-sm font-semibold transition cursor-pointer ${
+                currentView === 'home' && !currentGenerator
+                  ? 'text-white border-b-2 border-purple-500 pb-1'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {t.home}
+            </button>
+
+            {/* Generators Dropdown with all 4 families */}
+            <div className="relative">
+              <button
+                onClick={() => setGeneratorsDropdownOpen(!generatorsDropdownOpen)}
+                className={`text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer py-1.5 ${
+                  currentView === 'generators' || currentView === 'generator-detail'
+                    ? 'text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>{t.generators} ({ALL_GENERATORS_LIST.length})</span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+              </button>
+
+              {generatorsDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-20"
+                    onClick={() => setGeneratorsDropdownOpen(false)}
+                  />
+                  <div className="absolute left-0 mt-2 w-[520px] rounded-2xl bg-[#0b1020] border border-slate-800 shadow-2xl p-4 z-30 animate-fade-in max-h-[80vh] overflow-y-auto">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                        Les {ALL_GENERATORS_LIST.length} Générateurs NameForge
+                      </span>
+                      <button
+                        onClick={() => {
+                          onNavigate('generators');
+                          setGeneratorsDropdownOpen(false);
+                        }}
+                        className="text-xs text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+                      >
+                        {t.allGenerators} →
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {GENERATOR_FAMILIES_CONFIG.filter((f) => f.id !== 'all').map((fam) => {
+                        const items = ALL_GENERATORS_LIST.filter((g) => g.category === fam.id);
+                        return (
+                          <div key={fam.id} className="space-y-1.5">
+                            <div className="text-[11px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                              <span>{fam.icon}</span>
+                              <span>{fam.label} ({items.length})</span>
+                            </div>
+                            <div className="space-y-0.5">
+                              {items.slice(0, 5).map((gen) => (
+                                <button
+                                  key={gen.id}
+                                  onClick={() => {
+                                    onNavigate('generator-detail', gen.id);
+                                    setGeneratorsDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition flex items-center gap-2 cursor-pointer"
+                                >
+                                  <span>{gen.icon}</span>
+                                  <span className="truncate">{gen.shortTitle}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Catalog Link */}
+            <button
+              onClick={() => onNavigate('generators')}
+              className={`text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                currentView === 'generators'
+                  ? 'text-white border-b-2 border-purple-500 pb-1'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Catalogue</span>
+            </button>
+
+            {/* Random Generator Quick Button */}
+            <button
+              onClick={() => {
+                const randomGen = ALL_GENERATORS_LIST[Math.floor(Math.random() * ALL_GENERATORS_LIST.length)];
+                onNavigate('generator-detail', randomGen.id);
+              }}
+              className="text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              title={`Ouvrir un générateur aléatoire parmi les ${ALL_GENERATORS_LIST.length}`}
+            >
+              <Dices className="w-3.5 h-3.5 text-amber-400" />
+              <span>🎲 Aléatoire</span>
+            </button>
+
+            {/* My Names with Live Counter */}
+            <button
+              onClick={() => onNavigate('my-names')}
+              className={`text-sm font-semibold flex items-center gap-2 transition cursor-pointer ${
+                currentView === 'my-names'
+                  ? 'text-white border-b-2 border-purple-500 pb-1'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Bookmark className="w-4 h-4 text-purple-400" />
+              <span>{t.myNames}</span>
+              {savedCount > 0 && (
+                <span className="px-2 py-0.5 text-xs font-bold bg-purple-600 text-white rounded-full">
+                  {savedCount}
+                </span>
+              )}
+            </button>
+          </nav>
+
+          {/* Right Header Tools (Settings & Quick Language) */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Quick Language Trigger */}
+            <button
+              onClick={() => setShowLangModal(true)}
+              className="h-10 px-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 text-xs sm:text-sm font-bold text-slate-200 hover:text-white flex items-center gap-2 transition cursor-pointer shadow-sm hover:border-purple-500/60"
+              title="Changer la langue (80 langues disponibles)"
+              aria-label="Changer la langue"
+            >
+              <Globe className="w-4 h-4 text-cyan-400" />
+              <span className="text-base">{currentLangMeta.flag}</span>
+              <span className="font-semibold text-xs text-slate-300 hidden xl:inline">{currentLangMeta.native}</span>
+              <span className="uppercase text-xs font-bold text-purple-300 xl:hidden">{currentLangMeta.code}</span>
+            </button>
+
+            {/* Settings Trigger */}
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer"
+              title={t.settings}
+              aria-label={t.settings}
+            >
+              <Settings className="w-4.5 h-4.5 text-purple-400" />
+            </button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300"
+              aria-label={t.settings}
+            >
+              <Settings className="w-4 h-4 text-purple-400" />
+            </button>
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-300 hover:text-white"
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
-      )}
-    </header>
+
+        {/* Mobile Menu Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-b border-slate-800 bg-[#090d1c] px-4 pt-3 pb-6 space-y-3">
+            <button
+              onClick={() => {
+                onNavigate('home');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800"
+            >
+              {t.home}
+            </button>
+
+            <button
+              onClick={() => {
+                onNavigate('generators');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between"
+            >
+              <span>{t.allGenerators}</span>
+              <span className="text-xs bg-purple-600/30 text-purple-300 px-2 py-0.5 rounded-full font-bold">
+                {ALL_GENERATORS_LIST.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                const randomGen = ALL_GENERATORS_LIST[Math.floor(Math.random() * ALL_GENERATORS_LIST.length)];
+                onNavigate('generator-detail', randomGen.id);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-xl text-sm font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2"
+            >
+              <Dices className="w-4 h-4 text-amber-400" />
+              <span>Générateur Aléatoire (🎲 Surprenez-moi)</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onNavigate('my-names');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-purple-400" />
+                <span>{t.myNames}</span>
+              </span>
+              {savedCount > 0 && (
+                <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold">
+                  {savedCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setShowLangModal(true);
+              }}
+              className="w-full text-left py-2 px-3 rounded-xl text-sm font-semibold text-cyan-300 hover:bg-slate-800 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span>Langue : {currentLangMeta.flag} {currentLangMeta.native}</span>
+              </span>
+              <span className="text-xs bg-cyan-600/20 text-cyan-300 px-2 py-0.5 rounded-full font-bold">
+                80 langues
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setShowSettingsModal(true);
+              }}
+              className="w-full text-left py-2 px-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4 text-purple-400" />
+              <span>{t.settings}</span>
+            </button>
+          </div>
+        )}
+      </header>
+    </>
   );
 };

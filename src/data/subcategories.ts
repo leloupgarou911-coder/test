@@ -1,4 +1,11 @@
 import { SubcategoryData } from '../types';
+import { BUSINESS_AND_CREATIVE_DATA } from './businessAndCreativeCategories';
+import { GAMING_SYSTEMS_SUBCATEGORIES } from './gamingAndSystemsGenerators';
+import { SUBCATEGORIES_BATCH_A } from './generatorsBatchA';
+import { SUBCATEGORIES_BATCH_B } from './generatorsBatchB';
+import { SUBCATEGORIES_BATCH_CDE } from './generatorsBatchCDE';
+import { SUBCATEGORIES_BATCH_F } from './generatorsBatchF';
+import { SUBCATEGORIES_BATCH_G } from './generatorsBatchG';
 
 export const SUBCATEGORIES_DATA: Record<string, Record<string, SubcategoryData>> = {
   anime: {
@@ -741,4 +748,11 @@ export const SUBCATEGORIES_DATA: Record<string, Record<string, SubcategoryData>>
       descriptions: ['✨ A timeless fantasy character name.'],
     },
   },
+  ...BUSINESS_AND_CREATIVE_DATA,
+  ...GAMING_SYSTEMS_SUBCATEGORIES,
+  ...SUBCATEGORIES_BATCH_A,
+  ...SUBCATEGORIES_BATCH_B,
+  ...SUBCATEGORIES_BATCH_CDE,
+  ...SUBCATEGORIES_BATCH_F,
+  ...SUBCATEGORIES_BATCH_G,
 };

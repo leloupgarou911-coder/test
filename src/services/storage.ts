@@ -89,6 +89,28 @@ export function setStoredRating(name: string, rating: number): void {
   }
 }
 
+/**
+ * Returns top-rated names based on real user star evaluations, independently filterable by category
+ */
+export function getTopRatedNamesByCategory(generatorId?: string, limit = 10): SavedNameEntry[] {
+  const all = getSavedNames();
+  const rated = all.filter((entry) => {
+    const hasStars = typeof entry.rating === 'number' && entry.rating > 0;
+    if (!hasStars) return false;
+    if (generatorId && generatorId !== 'all') {
+      return entry.generator.toLowerCase() === generatorId.toLowerCase();
+    }
+    return true;
+  });
+  // Sort strictly by star rating descending (5 to 1), then by most recent
+  rated.sort((a, b) => {
+    const diff = (b.rating || 0) - (a.rating || 0);
+    if (diff !== 0) return diff;
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
+  return rated.slice(0, limit);
+}
+
 /* =====================================================================
    SAVED NAMES CRUD
 ===================================================================== */
@@ -158,17 +180,20 @@ function saveAllNames(names: SavedNameEntry[]): boolean {
   }
 }
 
-export function findSavedEntry(name: string, generator?: string): SavedNameEntry | undefined {
+function findInList(list: SavedNameEntry[], name: string, generator?: string): SavedNameEntry | undefined {
   const target = safeTrim(name).toLowerCase();
   if (!target) return undefined;
-  const names = getSavedNames();
   if (generator) {
-    const exact = names.find(
-      (x) => x.name.toLowerCase() === target && x.generator.toLowerCase() === generator.toLowerCase()
-    );
+    const genTarget = safeTrim(generator).toLowerCase();
+    const exact = list.find((x) => x.name.toLowerCase() === target && x.generator.toLowerCase() === genTarget);
     if (exact) return exact;
   }
-  return names.find((x) => x.name.toLowerCase() === target);
+  return list.find((x) => x.name.toLowerCase() === target);
+}
+
+export function findSavedEntry(name: string, generator?: string): SavedNameEntry | undefined {
+  const names = getSavedNames();
+  return findInList(names, name, generator);
 }
 
 export function toggleSaveName(
@@ -180,7 +205,7 @@ export function toggleSaveName(
   const clean = safeTrim(name);
   if (!clean) return false;
   const names = getSavedNames();
-  const existing = findSavedEntry(clean, generator);
+  const existing = findInList(names, clean, generator);
 
   if (existing) {
     existing.saved = !existing.saved;
@@ -218,7 +243,7 @@ export function toggleLikeName(name: string, generator: GeneratorId | string, st
   const clean = safeTrim(name);
   if (!clean) return false;
   const names = getSavedNames();
-  const existing = findSavedEntry(clean, generator);
+  const existing = findInList(names, clean, generator);
 
   if (existing) {
     existing.liked = !existing.liked;
@@ -259,7 +284,7 @@ export function updateEntryNote(
   const clean = safeTrim(name);
   if (!clean) return false;
   const names = getSavedNames();
-  const existing = findSavedEntry(clean, generator);
+  const existing = findInList(names, clean, generator);
 
   if (existing) {
     existing.note = safeTrim(note);
@@ -297,7 +322,7 @@ export function assignNameToCollection(name: string, collectionId?: string): boo
   const clean = safeTrim(name);
   if (!clean) return false;
   const names = getSavedNames();
-  const existing = findSavedEntry(clean);
+  const existing = findInList(names, clean);
   if (!existing) return false;
 
   existing.collectionId = collectionId ? safeTrim(collectionId) : undefined;
@@ -309,10 +334,12 @@ export function deleteSavedName(name: string, generator?: string): boolean {
   const clean = safeTrim(name);
   if (!clean) return false;
   const names = getSavedNames();
-  const existing = findSavedEntry(clean, generator);
-  if (!existing) return false;
-
-  const filtered = names.filter((x) => x.id !== existing.id);
+  const target = clean.toLowerCase();
+  const filtered = names.filter((x) => {
+    if (x.name.toLowerCase() !== target) return true;
+    if (generator && x.generator.toLowerCase() !== generator.toLowerCase()) return true;
+    return false;
+  });
   saveAllNames(filtered);
   try {
     localStorage.removeItem('nameforge_rating_' + clean);
@@ -421,6 +448,7 @@ export function addGenerationHistory(
   }>
 ): void {
   try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
     const current = getGenerationHistory();
     const existingNames = new Set(current.map((x) => x.name.toLowerCase()));
     const newItems: HistoryEntry[] = [];
@@ -615,11 +643,15 @@ export function importDataJSON(jsonStr: string): ImportResult {
           current.liked = true;
           modified = true;
         }
-        if (entry.note && !current.note) {
-          current.note = entry.note;
+        if (entry.note && entry.note !== current.note) {
+          if (!current.note) {
+            current.note = entry.note;
+          } else if (!current.note.includes(entry.note)) {
+            current.note = `${current.note} | ${entry.note}`;
+          }
           modified = true;
         }
-        if (entry.rating && !current.rating) {
+        if (entry.rating && (!current.rating || entry.rating > current.rating)) {
           current.rating = entry.rating;
           modified = true;
         }

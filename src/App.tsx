@@ -6,16 +6,28 @@ import { GeneratorsListView } from './views/GeneratorsListView';
 import { GeneratorDetailView } from './views/GeneratorDetailView';
 import { MyNamesView } from './views/MyNamesView';
 import { GeneratorId } from './types';
-import { GENERATORS_METADATA } from './data/generators';
+import { GENERATORS_METADATA, ALL_GENERATORS_LIST } from './data/generators';
+import { applySettingsToDOM, getAppSettings, subscribeToSettings } from './services/settings';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('home');
   const [currentGenerator, setCurrentGenerator] = useState<GeneratorId>('fantasy');
+  const [settings, setSettings] = useState(getAppSettings());
 
-  // Handle URL hash changes for easy deep linking & back/forward navigation
+  // Initialize and subscribe to settings
+  useEffect(() => {
+    applySettingsToDOM(getAppSettings());
+    const unsub = subscribeToSettings((s) => {
+      setSettings(s);
+      applySettingsToDOM(s);
+    });
+    return () => unsub();
+  }, []);
+
+  // Handle URL hash changes for deep linking
   const parseHash = () => {
     const hash = window.location.hash.replace(/^#\/?/, '');
-    if (!hash || hash === 'faq' || hash === 'generator') {
+    if (!hash || hash === 'faq') {
       setCurrentView('home');
       return;
     }
@@ -73,29 +85,37 @@ export const App: React.FC = () => {
     }
   };
 
-  // Sync document title
+  // Sync document title and meta
   useEffect(() => {
     if (currentView === 'home') {
-      document.title = 'NameForge — Free Name Generators for Fantasy, RPG, Anime & Gaming';
+      document.title = `NameForge — ${ALL_GENERATORS_LIST.length} Générateurs de Noms Gratuits & Professionnels`;
     } else if (currentView === 'generators') {
-      document.title = 'All Name Generators — NameForge';
+      document.title = `Tous les ${ALL_GENERATORS_LIST.length} Générateurs de Noms — NameForge`;
     } else if (currentView === 'my-names') {
-      document.title = 'My Names — Saved & Liked Names | NameForge';
+      document.title = 'Mes Noms — Favoris, Notes & Collections | NameForge';
     } else if (currentView === 'generator-detail') {
       const meta = GENERATORS_METADATA[currentGenerator];
-      document.title = `${meta ? meta.title : 'Name Generator'} | NameForge`;
+      document.title = `${meta ? meta.title : 'Générateur de Noms'} | NameForge`;
     }
-  }, [currentView, currentGenerator]);
+  }, [currentView, currentGenerator, settings.language]);
 
   return (
-    <div className="min-h-screen bg-[#060611] text-white flex flex-col font-sans selection:bg-purple-500 selection:text-white">
+    <div className="min-h-screen bg-[#060611] text-slate-100 flex flex-col font-sans selection:bg-purple-500 selection:text-white transition-colors duration-200">
+      {/* Accessibility Skip Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-purple-600 focus:text-white focus:rounded-xl focus:shadow-xl focus:outline-none"
+      >
+        Passer au contenu principal
+      </a>
+
       <Navbar
         currentView={currentView}
         currentGenerator={currentView === 'generator-detail' ? currentGenerator : undefined}
         onNavigate={handleNavigate}
       />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1 focus:outline-none" tabIndex={-1}>
         {currentView === 'home' && <HomeView onNavigate={handleNavigate} />}
         {currentView === 'generators' && <GeneratorsListView onNavigate={handleNavigate} />}
         {currentView === 'generator-detail' && (

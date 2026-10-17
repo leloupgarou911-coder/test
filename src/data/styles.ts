@@ -1,4 +1,5 @@
 import { StyleOption, SubcategoryData } from '../types';
+import { SUBCATEGORIES_DATA } from './subcategories';
 
 export interface StyleDNA {
   tone: string;
@@ -162,7 +163,151 @@ export const STYLE_DNA: Record<string, StyleDNA> = {
   },
 };
 
-export function getStyleOptions(): StyleOption[] {
+export const CATEGORY_SPECIFIC_STYLES: Record<string, [string, string][]> = {
+  brand: [
+    ['luxury', '💎 Luxe & Prestige'],
+    ['tech', '⚡ Tech & Moderne'],
+    ['lifestyle', '🌿 Lifestyle & Éco'],
+    ['default', '✨ Marque Générale'],
+  ],
+  business: [
+    ['consulting', '📊 Conseil & Stratégie'],
+    ['industrial', '🏗️ Industrie & Ingénierie'],
+    ['default', '🏢 Dénomination Corporative'],
+  ],
+  product: [
+    ['gadget', '⚡ Hardware & Gadgets'],
+    ['sport', '🏃 Sport & Performance'],
+    ['default', '📦 Produit Universel'],
+  ],
+  startup: [
+    ['ai', '🤖 IA & DeepTech'],
+    ['fintech', '💳 FinTech & Finance'],
+    ['default', '🚀 Tech & SaaS'],
+  ],
+  shop: [
+    ['boutique', '👗 Boutique & Mode'],
+    ['cafe', '☕ Café & Torréfaction'],
+    ['default', '🛍️ Commerce de Proximité'],
+  ],
+  domain: [
+    ['brandable', '🌐 Brandable .com'],
+    ['tech', '⚡ Tech .io & .ai'],
+    ['default', '🌍 Adresse Web Universelle'],
+  ],
+  app: [
+    ['productivity', '⚡ Productivité & Outils'],
+    ['social', '💬 Social & Messagerie'],
+    ['default', '📱 Application Smartphone'],
+  ],
+  feature: [
+    ['smart', '🧠 Smart & IA'],
+    ['security', '🔒 Sécurité & Contrôle'],
+    ['default', '⚙️ Fonctionnalité Clé'],
+  ],
+  service: [
+    ['premium', '⭐ Prestige & Conciergerie'],
+    ['audit', '🔍 Audit & Diagnostic'],
+    ['default', '🤝 Forfait Commercial'],
+  ],
+  slogan: [
+    ['action', '⚡ Action Directe'],
+    ['vision', '💡 Vision & Promesse'],
+    ['default', '📣 Accroche Culte'],
+  ],
+  book: [
+    ['thriller', '🔍 Thriller & Suspense'],
+    ['fantasy', '⚔️ Épopée & Fantasy'],
+    ['default', '📚 Titre Littéraire'],
+  ],
+  character: [
+    ['protagonist', '🌟 Protagoniste Valeureux'],
+    ['antagonist', '🎭 Antagoniste Complexe'],
+    ['default', '👤 Personnage Roman'],
+  ],
+  videogame: [
+    ['action', '💥 Action & Frénésie'],
+    ['indie', '🌾 Indépendant & Poétique'],
+    ['default', '🕹️ Titre Vidéoludique'],
+  ],
+  guild: [
+    ['raid', '⚔️ Guilde PvE & Raid'],
+    ['pvp', '🩸 Clan PvP & Arènes'],
+    ['default', '🛡️ Bannière de Confrérie'],
+  ],
+  youtube: [
+    ['tech', '💻 Tech & Déballage'],
+    ['gaming', '🎮 Gaming & Fun'],
+    ['default', '📹 Chaîne Vidéo'],
+  ],
+  podcast: [
+    ['talk', '☕ Talk-Show & Intimité'],
+    ['growth', '💡 Croissance & Business'],
+    ['default', '🎙️ Émission Audio'],
+  ],
+  handle: [
+    ['cyber', '⚡ Cyber & Minimal'],
+    ['aesthetic', '🌸 Aesthetic & Poétique'],
+    ['default', '✨ Pseudonyme Universel'],
+  ],
+  community: [
+    ['hub', '🌍 Hub & Foyer Créatif'],
+    ['default', '🤝 Collectif & Club'],
+  ],
+  placename: [
+    ['coastal', '⛵ Ports & Îles'],
+    ['mountain', '🏔️ Pics & Forteresses'],
+    ['default', '🗺️ Cités & Terres'],
+  ],
+  planet: [
+    ['terrestrial', '🪐 Monde Tellurique'],
+    ['gas', '🌀 Géante Gazeuse'],
+    ['default', '🌌 Système Céleste'],
+  ],
+  project: [
+    ['secret', '🔒 Codename Secret'],
+    ['default', '🎯 Projet d’Entreprise'],
+  ],
+  framework: [
+    ['method', '📐 Méthode & Matrice'],
+    ['default', '📊 Système Conceptuel'],
+  ],
+  event: [
+    ['summit', '🎤 Sommet & Plénière'],
+    ['festival', '🎨 Festival & Célébration'],
+    ['default', '🎪 Grand Rassemblement'],
+  ],
+  ai_bot: [
+    ['assistant', '💬 Copilote Bienveillant'],
+    ['autonomous', '🦾 Agent Autonome'],
+    ['default', '🤖 Intelligence Artificielle'],
+  ],
+  culinary: [
+    ['gourmet', '🍷 Haute Gastronomie'],
+    ['cocktail', '🍸 Cocktail Signature'],
+    ['default', '🍲 Plat de Tradition'],
+  ],
+};
+
+export function getStyleOptions(generatorId?: string): StyleOption[] {
+  if (generatorId && CATEGORY_SPECIFIC_STYLES[generatorId]) {
+    return CATEGORY_SPECIFIC_STYLES[generatorId].map(([key, label]) => ({
+      key,
+      label,
+      icon: label.split(' ')[0],
+    }));
+  }
+  if (generatorId && SUBCATEGORIES_DATA[generatorId]) {
+    const subcats = SUBCATEGORIES_DATA[generatorId];
+    const keys = Object.keys(subcats);
+    if (keys.length > 0) {
+      return keys.map((k) => ({
+        key: k,
+        label: `${subcats[k].icon || '✨'} ${subcats[k].label || k}`,
+        icon: subcats[k].icon || '✨',
+      }));
+    }
+  }
   return NAMEFORGE_STYLES.map(([key, label]) => ({
     key,
     label,
@@ -176,6 +321,15 @@ export function resolveStyleData(
   categoryData: Record<string, Record<string, SubcategoryData>>
 ): SubcategoryData {
   const group = categoryData[generatorId] || {};
+
+  // Check direct key match first
+  if (group[key]) {
+    return {
+      ...group[key],
+      styleKey: key,
+    };
+  }
+
   const aliases = STYLE_ALIASES[key] || [];
   let chosen: SubcategoryData | null = null;
 
@@ -197,12 +351,24 @@ export function resolveStyleData(
     };
   }
 
-  const dna = STYLE_DNA[key] || STYLE_DNA.warrior;
+  const dna = STYLE_DNA[key];
+  const hasCustomVocabulary =
+    (chosen.prefixes && chosen.prefixes.length > 0) ||
+    (chosen.suffixes && chosen.suffixes.length > 0);
+
   const merged: SubcategoryData = {
     ...chosen,
-    prefixes: [...(chosen.prefixes || []), ...(dna.starts || [])],
-    suffixes: [...(chosen.suffixes || []), ...(dna.ends || [])],
-    tone: dna.tone,
+    prefixes: hasCustomVocabulary
+      ? chosen.prefixes
+      : dna
+      ? dna.starts
+      : ['Nova', 'Kaly', 'Velo', 'Aero', 'Zeta', 'Sol'],
+    suffixes: hasCustomVocabulary
+      ? chosen.suffixes
+      : dna
+      ? dna.ends
+      : ['is', 'or', 'ex', 'flow', 'craft', 'wave'],
+    tone: chosen.tone || (dna ? dna.tone : 'Moderne • distinctif • équilibré'),
     styleKey: key,
   };
 
@@ -215,3 +381,4 @@ export function resolveStyleData(
 
   return merged;
 }
+
